@@ -1,4 +1,6 @@
 import asyncio
+import os
+from aiohttp import web
 import logging
 import ssl
 import sys
@@ -475,6 +477,21 @@ async def back_to_main(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text("Расписание STRRоклиста. Куда едем?", reply_markup=main_keyboard(is_admin))
 
 
+# === ЗАГЛУШКА ДЛЯ RENDER ===
+async def health_check(request):
+    return web.Response(text="Bot is alive!")
+
+async def start_dummy_server():
+    app = web.Application()
+    app.router.add_get('/', health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    print(f"Мини-сервер запущен на порту {port} для Render")
+
+# === ОСНОВНОЙ ЗАПУСК ===
 async def main():
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -483,7 +500,14 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     print("Бот запущен с PostgreSQL через пул!")
     await bot.delete_webhook(drop_pending_updates=True)
+    
+    # Сначала запускаем фейковый веб-сервер для Render
+    await start_dummy_server()
+    # Затем запускаем самого бота
     await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
