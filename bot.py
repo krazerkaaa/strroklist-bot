@@ -30,7 +30,7 @@ TIMES_TUDA = ["8:30", "10:15", "12:00", "14:15", "16:00", "17:40"]
 TIMES_OBRATNO = ["10:00", "12:00", "13:30", "16:00", "17:30", "19:00", "21:00"]
 MAX_SEATS = 4
 
-bot = Bot(token=BOT_TOKEN)
+bot = None
 dp = Dispatcher()
 
 # Глобальная переменная для пула соединений с БД
@@ -493,6 +493,9 @@ async def start_dummy_server():
 
 # === ОСНОВНОЙ ЗАПУСК ===
 async def main():
+    global bot
+    bot = Bot(token=BOT_TOKEN)
+
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
