@@ -14,7 +14,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "9246224974:AAEjMFjyxDEO-cV5NVMh5sxeqYAbAkyNwhI"
-ADMIN_IDS = [955701804]  # Твой ID / ID Артёма
+ADMIN_IDS = [955701804, 849450817]  # Твой ID и ID Артёма
 
 # === ПАРАМЕТРЫ ПОДКЛЮЧЕНИЯ К SUPABASE (ПУЛ ТРАНЗАКЦИЙ) ===
 DB_USER = "postgres.kuiqxgqjfatxvlyckcgs"
