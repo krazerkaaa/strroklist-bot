@@ -534,7 +534,7 @@ async def main():
     await init_db()
     logging.basicConfig(level=logging.INFO)
     print("Бот запущен с PostgreSQL через пул!")
-    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.delete_webhook(drop_pending_updates=False)
     
     # Сначала запускаем фейковый веб-сервер для Render
     await start_dummy_server()
