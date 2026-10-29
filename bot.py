@@ -381,6 +381,8 @@ async def render_admin_slots(message: Message, direction: str, date_iso: str):
             kb.append(
                 [InlineKeyboardButton(text=f"✅ Открыть слот {t}", callback_data=f"toggle_{direction}_{date_iso}_{t}")])
 
+    # Кнопка для уведомлений
+    kb.append([InlineKeyboardButton(text="🔔 Оповестить всех", callback_data=f"notifyall_{direction}_{date_iso}")])
     kb.append([InlineKeyboardButton(text="🔙 Назад", callback_data=f"adate_{date_iso}")])
 
     await message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=kb), parse_mode="Markdown")
@@ -411,6 +413,32 @@ async def toggle_slot(call: CallbackQuery):
             await call.answer(f"Окно на {time} открыто!")
 
     await render_admin_slots(call.message, direction, date_iso)
+
+
+@dp.callback_query(F.data.startswith("notifyall_"))
+async def notify_all_users(call: CallbackQuery):
+    _, direction, date_iso = call.data.split("_")
+    dir_text = "Туда (11 -> НВК)" if direction == "tuda" else "Обратно (НВК -> 11)"
+    
+    await call.answer("Начинаю рассылку...", show_alert=False)
+    
+    async with db_pool.acquire() as connection:
+        # Выбираем всех реальных юзеров (у ручных пассажиров user_id отрицательный)
+        users = await connection.fetch("SELECT user_id FROM users WHERE user_id > 0")
+        
+    count = 0
+    for u in users:
+        try:
+            await bot.send_message(
+                u['user_id'], 
+                f"🔔 **Открыта запись!**\n📅 На {date_iso} ({dir_text})\nУспевай занять места!", 
+                parse_mode="Markdown"
+            )
+            count += 1
+        except Exception:
+            pass # Если юзер заблокировал бота
+            
+    await call.message.answer(f"✅ Рассылка завершена! Уведомлено {count} чел.")
 
 
 # === РУЧНОЕ ДОБАВЛЕНИЕ ПАССАЖИРА АДМИНИСТРАТОРОМ ===
@@ -461,12 +489,16 @@ async def admin_add_passenger_finish(message: Message, state: FSMContext):
                 "INSERT INTO bookings (user_id, slot_id) VALUES ($1, $2)",
                 fake_user_id, slot_id
             )
-            await message.answer(f"✅ Успешно добавлен пассажир: **{passenger_name}**!", parse_mode="Markdown")
+            # Добавлены кнопки "Добавить еще" и "Выйти"
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="➕ Добавить еще", callback_data=f"addpass_{slot_id}_{direction}_{date_iso}")],
+                [InlineKeyboardButton(text="🔙 Выйти к слотам", callback_data=f"adir_{direction}_{date_iso}")]
+            ])
+            await message.answer(f"✅ Успешно добавлен пассажир: **{passenger_name}**!", reply_markup=kb, parse_mode="Markdown")
         except Exception as e:
             await message.answer(f"❌ Ошибка при добавлении: {e}")
 
     await state.clear()
-    await render_admin_slots(message, direction, date_iso)
 
 
 # Обработка кнопки Назад
@@ -508,10 +540,6 @@ async def main():
     await start_dummy_server()
     # Затем запускаем самого бота
     await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
 
 if __name__ == "__main__":
     asyncio.run(main())
